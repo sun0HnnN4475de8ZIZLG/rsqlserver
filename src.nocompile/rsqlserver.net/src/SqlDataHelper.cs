@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -127,6 +127,8 @@ namespace rsqlserver.net
                 return Convert.ToInt32(value);
             else if (fieldType == typeof(System.Decimal))
                 return Convert.ToDouble(value);
+            else if (fieldType == typeof(System.Single))
+                return Single.NaN;//skip this or set to null            
             else
                return value;
         }
@@ -169,7 +171,7 @@ namespace rsqlserver.net
                 // fetch rows and store data by column
                 for (int i = 0; i < _reader.FieldCount; i++)
                 {
-                    var value = GetItem(_reader, i);
+                    /*var value = GetItem(_reader, i);
                     System.Type the_type = value.GetType();
                     if (the_type == typeof(System.Single))
                         ; //skip this or set to null
@@ -181,7 +183,8 @@ namespace rsqlserver.net
                     }
                     else
                         //problem is that value can be NaN
-                        _resultSet[_cnames[i]].SetValue(value, cnt);
+                        _resultSet[_cnames[i]].SetValue(value, cnt);*/
+                    _resultSet[_cnames[i]].SetValue(GetItem(_reader, i), cnt);
                 }
              
                 cnt += 1;
