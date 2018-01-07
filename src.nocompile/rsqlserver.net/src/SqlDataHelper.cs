@@ -72,6 +72,8 @@ namespace rsqlserver.net
                 {
                     _cdbtypes[i] = _reader.GetDataTypeName(i);
                     _ctypes[i] = _reader.GetFieldType(i);
+                    if (_ctypes[i] == typeof(System.Decimal))
+                        _ctypes[i] = typeof(System.Double);
                     _cnames[i] = _reader.GetName(i);
                 }
             }
@@ -121,14 +123,14 @@ namespace rsqlserver.net
                 else
                     return Single.NaN;
             }
+            else  if (fieldType == typeof(long))
+                return Convert.ToInt32(value);
+            else if (fieldType == typeof(System.Decimal))
+                return Convert.ToDouble(value);
             else
-            {
-                if (fieldType == typeof(long))
-                    return Convert.ToInt32(value);
-            }
-            return value;
-
+               return value;
         }
+
         public Object GetConnectionProperty(SqlConnection _conn, string prop)
         {
             if (_conn.State == ConnectionState.Closed &
@@ -168,7 +170,18 @@ namespace rsqlserver.net
                 for (int i = 0; i < _reader.FieldCount; i++)
                 {
                     var value = GetItem(_reader, i);
-                    _resultSet[_cnames[i]].SetValue(value, cnt);
+                    System.Type the_type = value.GetType();
+                    if (the_type == typeof(System.Single))
+                        ; //skip this or set to null
+                    else if (the_type == typeof(System.Decimal))
+                    {
+                        //problem is that value can be NaN
+                        object v = System.Convert.ToDouble(value);
+                        _resultSet[_cnames[i]].SetValue(v, cnt);
+                    }
+                    else
+                        //problem is that value can be NaN
+                        _resultSet[_cnames[i]].SetValue(value, cnt);
                 }
              
                 cnt += 1;
