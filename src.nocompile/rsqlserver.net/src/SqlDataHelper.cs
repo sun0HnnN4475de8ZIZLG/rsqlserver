@@ -128,7 +128,18 @@ namespace rsqlserver.net
             else if (fieldType == typeof(System.Decimal))
                 return Convert.ToDouble(value);
             else if (fieldType == typeof(System.Single))
-                return Single.NaN;//skip this or set to null            
+            {
+                //may need to review this section to avoid potential crashes
+                System.Single temp = Convert.ToSingle(value);
+                if (Single.IsNaN(temp))
+                    return Single.NaN;
+                else if (Single.IsNegativeInfinity(temp))
+                    return Single.NaN;
+                else if (Single.IsPositiveInfinity(temp))
+                    return Single.NaN;
+                else
+                    return temp;
+            }
             else
                return value;
         }
