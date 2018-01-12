@@ -72,6 +72,8 @@ namespace rsqlserver.net
                 {
                     _cdbtypes[i] = _reader.GetDataTypeName(i);
                     _ctypes[i] = _reader.GetFieldType(i);
+                    if (_ctypes[i] == typeof(System.Decimal))
+                        _ctypes[i] = typeof(System.Double);
                     _cnames[i] = _reader.GetName(i);
                 }
             }
@@ -108,27 +110,29 @@ namespace rsqlserver.net
         }
         #endregion 
         #region global methods 
+        //really want to inline this GetItem function without Object type to prevent unnecessary boxing and unboxing
+        //first need to identify what is called by rsqlexec
         public Object GetItem(SqlDataReader _reader, int i)
-        {
-            object value = _reader.GetValue(i);
-            var fieldType = _reader.GetFieldType(i);
+        {           
+            object value = _reader.GetValue(i);            
+            Type fieldType = _reader.GetFieldType(i);
             //if (res != null && res.GetType() == typeof(DateTime))
-            //    return ((DateTime)res).ToString("yyyy-MM-dd HH:mm:ss");
+            //    return ((DateTime)res).ToString("yyyy-MM-dd HH:mm:ss");            
             if (value == DBNull.Value)
             {
-                if (fieldType== typeof(String))
+                if (fieldType == typeof(String))
                     return string.Empty;
                 else
                     return Single.NaN;
             }
+            else if (fieldType == typeof(long))
+                return Convert.ToInt32(value);
+            else if (fieldType == typeof(System.Decimal))
+                return Convert.ToDouble(value);
             else
-            {
-                if (fieldType == typeof(long))
-                    return Convert.ToInt32(value);
-            }
-            return value;
-
+                return value;
         }
+
         public Object GetConnectionProperty(SqlConnection _conn, string prop)
         {
             if (_conn.State == ConnectionState.Closed &
@@ -167,8 +171,7 @@ namespace rsqlserver.net
                 // fetch rows and store data by column
                 for (int i = 0; i < _reader.FieldCount; i++)
                 {
-                    var value = GetItem(_reader, i);
-                    _resultSet[_cnames[i]].SetValue(value, cnt);
+                    _resultSet[_cnames[i]].SetValue(GetItem(_reader, i), cnt);
                 }
              
                 cnt += 1;
@@ -186,6 +189,7 @@ namespace rsqlserver.net
         #endregion  
         #region tools
         private void setCapacity(int capacity){
+            //can get out of memory error here particularly if project is compiled with any cpu instead of x64
             _capacity = capacity;
             _resultSet = new Dictionary<string, Array>();
             for (int i = 0; i < _reader.FieldCount; i++)
